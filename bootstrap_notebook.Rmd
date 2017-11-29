@@ -1,0 +1,230 @@
+---
+title: "Семинар для магистров-товарищей"
+author: "Москвин Дмитрий"
+date: '2 декабря 2017 г '
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+header-includes: \usepackage[utf8]{inputenc} \usepackage[russian]{babel} \renewcommand{\familydefault}{\sfdefault} % sans serif \fontfamily{ppl}\selectfont
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE)
+```
+
+```{r libraries, echo=FALSE}
+library(boot)
+library(data.table)
+library(ggplot2)
+library(lubridate)
+library(microbenchmark)
+library(DT)
+```
+
+```{r download_data, cache=TRUE}
+auto_spb <- read.csv('http://data.gov.spb.ru/opendata/43/versions/11/csv/',stringsAsFactors = F,encoding = "UTF-8")
+```
+
+# Идея бутстрэпа
+
+
+# Практика
+
+Данные, с которыми будем работать, можно скачать отсюда:
+[данные об автостоянках, паркингах и гаражах Санкт-Петербурга](http://data.gov.spb.ru/opendata/43/versions/11/csv/). 
+Нам предстоит построить доверительный интервал "вместимости" средней платной парковки в Санкт-Петербурге.
+
+В датасете уберем поля number и note, чтобы не все выглядело грамоздко и посмотрим, с чем предстоит работать:
+
+```{r name_of_output,echo=TRUE,cache=TRUE}
+auto_spb <- as.data.table(auto_spb)[,2:7]
+
+datatable(auto_spb,class = 'cell-border stripe',rownames = FALSE,
+          options = list(lengthChange = FALSE, pageLength = 5),
+          caption = 'Таблица 1: Данные о парковках Санкт-Петербурга.')
+```
+
+Выберем лишь наблюдения с типом парковки _платная_ и посмотрим на гистограмму парковочных мест:
+
+```{r pay_parking,echo=TRUE,cache=TRUE}
+auto_spb_pay <- auto_spb[type == "Платная",]
+
+hist(auto_spb_pay$parking_space,
+     xlab = "Количество мест на паркове",
+     ylab = "Частота",
+     main = "Распределение парковочных мест")
+```
+
+
+## "Бутстрапированный" доверительный интервал со стандартной ошибкой
+
+1. Рассмотрим для начала реальное значение среднего для парковочного места
+
+```{r mean_parking_space, echo=TRUE,cache=TRUE, comment=""}
+parking_space.mean = with(auto_spb_pay, mean(parking_space))
+parking_space.mean
+```
+
+2. Создадим матрицу с 1000 строк (количество "бутстрапируемых" выборок) и 244 столбцами (действительное количество измерений)
+
+```{r boot_sampling, echo=TRUE}
+B = 1000
+n = nrow(auto_spb_pay)
+boot.samples = matrix(sample(x = auto_spb_pay$parking_space,
+                             size = B*n,
+                             replace = TRUE),
+                      nrow = B,
+                      ncol = n)
+boot.statistics = apply(boot.samples, 1, mean)
+```
+
+Визуализируем распределение средних значений наших выборок:
+
+```{r first_visualize, echo=TRUE}
+ggplot(data.frame(meanSpace = boot.statistics),aes(x=meanSpace)) +
+geom_histogram(binwidth=0.25,aes(y=..density..)) +
+geom_density(color="red")
+```
+
+Посчитаем 95% доверительный интервал
+
+```{r first_result, echo=TRUE, comment=""}
+space.se = sd(boot.statistics)
+interval = round(parking_space.mean + c(-1,1)*2*space.se,2)
+
+cat("Нижняя граница:  ", interval[1], "\nВерхняя граница: ", interval[2])
+```
+
+Обернем все в функцию:
+
+```{r boot_mean_func, echo=TRUE}
+boot.mean <-  function(x,B,binwidth=NULL, percent = FALSE){
+  n = length(x) # количество реальных наблюдений
+  boot.samples = matrix(sample(x,size=n*B,replace=TRUE), B, n) # делаем сэмплирование с повторением
+  boot.statistics = apply(boot.samples,1,mean) # считаем интересующую статистику
+  se = sd(boot.statistics) # считаем стандартное отклонение
+  require(ggplot2) # подключаем библиотеку для отрисовки графика
+  if(is.null(binwidth)){binwidth = diff(range(boot.statistics))/30} # задаем ширину столбцов на графике
+  p = ggplot(data.frame(x=boot.statistics),aes(x=x)) +
+    geom_histogram(aes(y=..density..),binwidth=binwidth) + geom_density(color="red")
+  plot(p)
+  if(percent){
+    interval = round(mean(x) + c(-1,1)*2*se,4) # считаем доверительный 95% интервал
+    cat("Нижняя граница:  ", 100* interval[1], "%\nВерхняя граница: ", 100*interval[2],"%")
+  } else {
+    interval = round(mean(x) + c(-1,1)*2*se,2) # считаем доверительный 95% интервал
+    cat("Нижняя граница:  ", interval[1], "\nВерхняя граница: ", interval[2])
+    }
+  return(list(boot.statistics = boot.statistics, interval=interval, se=se, plot=p))
+}
+```
+
+```{r return_result, echo=TRUE, comment=""}
+out <- boot.mean(auto_spb_pay$parking_space, B = 10000)
+```
+
+## Требовать ли премию?
+
+В компании провели эксперимент с оффером. Через определенное время t измерили конверсию и пришли к выводу, что все отлично! 
+
+Вот данные эксперимента:
+Было  2618 новых пользователей --> зарегестрировалось 62 |конверсия = 2,37%
+
+Стало 2417 новых пользователей --> зарегестрировалось 70 |конверсия = 2,90%
+
+Воспользуемся инструментом, который мы только что освоили:
+
+```{r offer, echo=TRUE, comment=""}
+new_offer <- c(rep(1, 70), rep(0, 2417 - 70))
+new_offer_result <- boot.mean(new_offer, 10000,binwidth = 0.001,percent = TRUE)
+```
+
+## Package 'boot'
+Мы самостоятельно реализовали простенькую функцию бутстрэпирования и теперь понимаем, что это такое и зачем оно нужно. Теперь можно выдохнуть и начать пользваться готовой библиотекой, с помощью которой можно познать всю мощь инструмента (**?boot()**).
+
+Выполним уже знакомую процедуру с помощью пакета:
+
+```{r boot_package, echo=TRUE, comment=""}
+my.mean <- function(x, indices) {
+  return( mean( x[indices] ) )
+}
+
+space.boot <- boot(auto_spb_pay$parking_space, my.mean, 10000)
+boot.ci(space.boot,type = "basic")
+```
+
+# Отступление или *"что еще интересного я могу поведать"*
+
+Что я делаю на работе и каким набором data-сатаниста я пользуюсь:
+
+  [xgboost](https://cran.r-project.org/web/packages/xgboost/vignettes/xgboostPresentation.html)
+  
+  [caret](http://topepo.github.io/caret/index.html)
+  
+  [lubridate](https://www.rdocumentation.org/packages/lubridate/versions/1.7.0)
+  
+  [data.table](https://cran.r-project.org/web/packages/data.table/vignettes/datatable-intro.html) OR [dplyr](https://cran.r-project.org/web/packages/dplyr/vignettes/dplyr.html)
+  
+  [microbenchmark](https://www.r-bloggers.com/using-the-microbenchmark-package-to-compare-the-execution-time-of-r-expressions/)
+  
+  [RODBC](https://www.statmethods.net/input/dbinterface.html)
+  
+  [ggplot](http://ggplot2.tidyverse.org/reference/index.html)
+  
+  [vkR](https://github.com/Dementiy/vkR)
+  
+  [jsonlite](https://cran.r-project.org/web/packages/jsonlite/vignettes/json-aaquickstart.html)
+  
+  [stringr](https://cran.r-project.org/web/packages/stringr/vignettes/stringr.html)
+  
+  ...
+
+## Тестируем скорость библиотек
+
+1) Подготовим данные для тестирования.
+
+```{r prepare_data, echo=TRUE, comment="", cache=TRUE}
+write.csv(x = auto_spb_pay, "auto_spb.csv",row.names = F,fileEncoding = "UTF-8")
+date_data <- as.character( seq.Date(from = as.Date("2010-01-01"),to = Sys.Date(),by = 'day') )
+```
+
+2) Сравним fread() из пакета **data.table** с read.table() из базового пакета:
+
+```{r test_1, echo=TRUE, comment="", cache=TRUE}
+compare_1 <- microbenchmark(data.table = fread("auto_spb.csv",stringsAsFactors = F,encoding = "UTF-8"),
+                                 basic = read.table("auto_spb.csv",stringsAsFactors = F,encoding = "UTF-8",sep = ",",header = T),
+                                 times = 1000L)
+summary(compare_1)[1:7]
+autoplot(compare_1)
+```
+
+На этом примере data.table работает >= 3.3 раза лучше!
+
+3) Сравним ymd() из пакета **lubridate** с as.Date() из базового пакета:
+
+```{r test_2, echo=TRUE, comment="", cache=TRUE}
+compare_2 <- microbenchmark(lubridate = ymd(date_data),
+                            basic = as.Date(date_data),
+                            times = 1000L)
+summary(compare_2)[1:7]
+boxplot(compare_2)
+```
+
+На этом примере lubridate работает >= 3.5 раза лучше!
+
+# Вывод
+0. Прогайте, друзья-товарищи
+
+1. Сначала пробуйте строить класс/функцию ручками
+
+2. Если как-то не зашло, то читайте теорию
+
+3. Если все получилось, то юзайте библиотеки
+
+## Ссылочки
+Если я рассказал плохо, или вы прослушали, можно глянуть эту [ссылку](https://stepik.org/lesson/42820/step/1?unit=20941). Здесь товарищи из института биоинформатики посветили один из модулей курса бутстрэпу.
+
+Еще лучше зайти [сюда](https://www.statmethods.net/advstats/bootstrapping.html) и посмотреть фрагмент неплохой книги *R in Action / Advanced statistics with R.*
