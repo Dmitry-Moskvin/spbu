@@ -1,7 +1,7 @@
 ---
-title: "Семинар для магистров-товарищей"
+title: "Семинар для товарищей-магистров"
 author: "Москвин Дмитрий"
-date: '2 декабря 2017 г '
+date: '2 декабря 2017г. '
 output:
   html_document:
     toc: yes
@@ -30,26 +30,36 @@ auto_spb <- read.csv('http://data.gov.spb.ru/opendata/43/versions/11/csv/',strin
 
 # Введение в бутстрэп
 
-## Основная идея
+<div style="display: flex;">
+<div style="flex: 1;">
 
 ![Что есть bootstrap?](bootstrap_boots.png)
 
+</div>
+
+<div style="display: flex;">
+
 ![Как работает bootstrap?](munhauzen.jpg)
+
+</div>
+</div>
 
 ## Немного теории
 
 [Бутстрэп](https://ru.wikipedia.org/wiki/%D0%91%D1%83%D1%82%D1%81%D1%82%D1%80%D1%8D%D0%BF_(%D1%81%D1%82%D0%B0%D1%82%D0%B8%D1%81%D1%82%D0%B8%D0%BA%D0%B0)) — практический компьютерный метод исследования распределения статистик вероятностных распределений, основанный на многократной генерации выборок методом Монте-Карло на базе имеющейся выборки.
 
-Термин введен в 1977г. Брэдли Эфроном (опубликовал в 1979г. в статье "Bootstrap Methods: Another Look at the Jackknife").
+Термин введен в 1977г. Брэдли Эфроном (первая публикация относится к 1979г., статья "Bootstrap Methods: Another Look at the Jackknife").
 
-Входит в класс методов генерации повторной выборки (jackknife, cross-validation, exact-test). Суть метода состоит в том, чтобы по имеющейся выборке построить эмпирическое распределение (приближение теоретической функции распределения). Если о законе распределения выборки нет никаких априорных сведений, а получить оценки его характеристики все-таки необходимо, то bootstrap-метод может быть весьма полезным инструментом. По сути это "нечестный метод" в статистике, который позволяет получить примерный ответ на многие практические вопросы без анализа, грубой компьютерной силой.
+Входит в класс методов генерации повторной выборки (jackknife, cross-validation, exact-test). Суть метода состоит в том, чтобы по имеющейся выборке построить эмпирическое распределение (приближение теоретической функции распределения). 
+
+Если о законе распределения выборки нет никаких априорных сведений, а получить оценки его характеристики все-таки необходимо, то bootstrap-метод может быть весьма полезным инструментом. По сути это "нечестный метод" в статистике, который позволяет получить примерный ответ на многие практические вопросы без анализа, грубой компьютерной силой.
 
 ## Алгоритм
 
 1. Выбираем наугад одно наблюдение из имеющихся;
 2. Повторяем пункт 1 столько раз, сколько у нас есть наблюдений (выбор происходит с повторением);
 3. Считаем интересующие нас метрики по этой новой выборке, запоминаем результат;
-4. Повторяем пункты 1-3 **B** раз, например, 10 тысяч.
+4. **Повторяем пункты 1-3 B раз**.
 
 # Практика
 
@@ -151,6 +161,7 @@ out <- boot.mean(auto_spb_pay$parking_space, B = 10000)
 В компании провели эксперимент с оффером. Через определенное время t измерили конверсию и пришли к выводу, что все отлично! 
 
 Вот данные эксперимента:
+
 Было  2618 новых пользователей --> зарегестрировалось 62 |конверсия = 2,37%
 
 Стало 2417 новых пользователей --> зарегестрировалось 70 |конверсия = 2,90%
@@ -163,7 +174,7 @@ new_offer_result <- boot.mean(new_offer, 10000,binwidth = 0.001,percent = TRUE)
 ```
 
 ## Package 'boot'
-Мы самостоятельно реализовали простенькую функцию бутстрэпирования и теперь понимаем, что это такое и зачем оно нужно. Теперь можно выдохнуть и начать пользваться готовой библиотекой, с помощью которой можно познать всю мощь инструмента (**?boot()**).
+Мы самостоятельно реализовали простенькую функцию бутстрэпирования и понимаем, что это такое и зачем оно нужно. Выдохнем. Теперь начнем пользваться готовой библиотекой, с помощью которой можно познать всю мощь инструмента ( **?boot()** ).
 
 Выполним уже знакомую процедуру с помощью пакета:
 
@@ -173,32 +184,32 @@ my.mean <- function(x, indices) {
 }
 
 space.boot <- boot(auto_spb_pay$parking_space, my.mean, 10000)
-boot.ci(space.boot,type = "basic")
+boot.ci(space.boot, type = "basic")
 ```
 
 # Отступление или *"что еще интересного я могу поведать"*
 
 Что я делаю на работе и каким набором data-сатаниста я пользуюсь:
 
-  [xgboost](https://cran.r-project.org/web/packages/xgboost/vignettes/xgboostPresentation.html)
+  [data.table](https://cran.r-project.org/web/packages/data.table/vignettes/datatable-intro.html) OR [dplyr](https://cran.r-project.org/web/packages/dplyr/vignettes/dplyr.html) - стиль и скорость работы с данными
   
-  [caret](http://topepo.github.io/caret/index.html)
+  [lubridate](https://www.rdocumentation.org/packages/lubridate/versions/1.7.0) - работа с датами
   
-  [lubridate](https://www.rdocumentation.org/packages/lubridate/versions/1.7.0)
+  [microbenchmark](https://www.r-bloggers.com/using-the-microbenchmark-package-to-compare-the-execution-time-of-r-expressions/) - анализ скорости выполнения кода
   
-  [data.table](https://cran.r-project.org/web/packages/data.table/vignettes/datatable-intro.html) OR [dplyr](https://cran.r-project.org/web/packages/dplyr/vignettes/dplyr.html)
+  [xgboost](https://cran.r-project.org/web/packages/xgboost/vignettes/xgboostPresentation.html) - модель стохастического градиентного спуска
   
-  [microbenchmark](https://www.r-bloggers.com/using-the-microbenchmark-package-to-compare-the-execution-time-of-r-expressions/)
+  [caret](http://topepo.github.io/caret/index.html) - пакет с реализацией большинства алгоритмов data science
   
-  [RODBC](https://www.statmethods.net/input/dbinterface.html)
+  [RODBC](https://www.statmethods.net/input/dbinterface.html) - коннектор к базе данных
   
-  [ggplot](http://ggplot2.tidyverse.org/reference/index.html)
+  [ggplot](http://ggplot2.tidyverse.org/reference/index.html) - бесподобная визуализация данных
   
-  [vkR](https://github.com/Dementiy/vkR)
+  [vkR](https://github.com/Dementiy/vkR) - анализ данных ВКонтакте
   
-  [jsonlite](https://cran.r-project.org/web/packages/jsonlite/vignettes/json-aaquickstart.html)
+  [jsonlite](https://cran.r-project.org/web/packages/jsonlite/vignettes/json-aaquickstart.html) - работа с древовидным типом данных json
   
-  [stringr](https://cran.r-project.org/web/packages/stringr/vignettes/stringr.html)
+  [stringr](https://cran.r-project.org/web/packages/stringr/vignettes/stringr.html) - работа с текстом
   
   ...
 
@@ -214,14 +225,14 @@ date_data <- as.character( seq.Date(from = as.Date("2010-01-01"),to = Sys.Date()
 2) Сравним fread() из пакета **data.table** с read.table() из базового пакета:
 
 ```{r test_1, echo=TRUE, comment="", cache=TRUE}
-compare_1 <- microbenchmark(data.table = fread("auto_spb.csv",stringsAsFactors = F,encoding = "UTF-8"),
-                                 basic = read.table("auto_spb.csv",stringsAsFactors = F,encoding = "UTF-8",sep = ",",header = T),
+compare_1 <- microbenchmark(data.table = fread("auto_spb.csv",stringsAsFactors = F),
+                                 basic = read.table("auto_spb.csv",stringsAsFactors = F,sep = ",",header = T),
                                  times = 1000L)
 summary(compare_1)[1:7]
 autoplot(compare_1)
 ```
 
-На этом примере data.table работает >= 3.3 раза лучше!
+На этом примере **data.table** работает >= 3.3 раза лучше!
 
 3) Сравним ymd() из пакета **lubridate** с as.Date() из базового пакета:
 
@@ -233,10 +244,10 @@ summary(compare_2)[1:7]
 boxplot(compare_2)
 ```
 
-На этом примере lubridate работает >= 3.5 раза лучше!
+На этом примере **lubridate** работает >= 3.5 раза лучше!
 
 # Вывод
-0. Прогайте, друзья-товарищи
+0. Прогайте, друзья
 
 1. Сначала пробуйте строить класс/функцию ручками
 
@@ -245,9 +256,8 @@ boxplot(compare_2)
 3. Если все получилось, то юзайте библиотеки
 
 ## Ссылочки
-Вот статья, с которой началось мое знакомство с этим методом: [вдохновение бутстрэпом](https://habrahabr.ru/post/192000/).
+1) Вот статья, с которой началось мое знакомство с этим методом: [вдохновение бутстрэпом](https://habrahabr.ru/post/192000/).
 
+2) Если я рассказал плохо, или вы прослушали, можно глянуть эту [ссылку](https://stepik.org/lesson/42820/step/1?unit=20941). Здесь коллеги из института биоинформатики посвятили один из модулей курса бутстрэпу.
 
-Если я рассказал плохо, или вы прослушали, можно глянуть эту [ссылку](https://stepik.org/lesson/42820/step/1?unit=20941). Здесь коллеги из института биоинформатики посвятили один из модулей курса бутстрэпу.
-
-Еще лучше зайти [сюда](https://www.statmethods.net/advstats/bootstrapping.html) и посмотреть фрагмент неплохой книги *R in Action / Advanced statistics with R.*
+3) Еще лучше зайти [сюда](https://www.statmethods.net/advstats/bootstrapping.html) и посмотреть фрагмент неплохой книги *R in Action / Advanced statistics with R.*
